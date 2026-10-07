@@ -134,6 +134,14 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
 .gt-opt{display:flex;margin:6px 0 0;flex-wrap:wrap}
 #gtPreview li{padding:10px 0}
 #gtPreview .q{font-size:1rem}
+.grid.lib-only{grid-template-columns:1fr}
+.grid.lib-only>section{max-width:860px}
+.add-page{padding:44px 0 64px;max-width:720px}
+.add-page .add{position:static;padding:24px}
+.add-page h2{font-size:clamp(1.8rem,4vw,2.6rem)}
+.add-page textarea{min-height:180px;font-size:1.2rem}
+.recent{margin-top:28px}
+.recent h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;margin:0 0 4px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){#show{transition:none}}
 </style>
@@ -144,6 +152,7 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     <h1>Commonplace</h1>
     <nav class="nav" aria-label="Pages">
       <a href="#" id="navHome">My quotes</a>
+      <a href="#add" id="navAdd">Add a quote</a>
       <a href="#similar" id="navSim">Find similar</a>
     </nav>
     <span id="status">Loading your quotes…</span>
@@ -170,28 +179,7 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     </div>
   </section>
 
-  <main class="grid">
-    <section class="add" aria-labelledby="addH">
-      <h2 id="addH">Add a quote</h2>
-      <form id="form" autocomplete="off">
-        <label class="f" for="qText">Quote</label>
-        <textarea id="qText" required placeholder="Type or paste the words you want to keep"></textarea>
-        <div class="row2">
-          <div><label class="f" for="qAuthor">Who said it</label><input type="text" id="qAuthor" list="authorList"></div>
-          <div><label class="f" for="qSource">Where from</label><input type="text" id="qSource" placeholder="Book, talk, friend…"></div>
-        </div>
-        <label class="f" for="qTags">Tags</label>
-        <input type="text" id="qTags" placeholder="courage, work, family">
-        <datalist id="authorList"></datalist>
-        <div class="form-actions">
-          <button class="btn primary" type="submit" id="saveBtn">Save quote</button>
-          <button class="btn" type="button" id="cancelEdit" hidden>Cancel edit</button>
-          <span class="hint">Ctrl/⌘ + Enter saves</span>
-        </div>
-        <div id="toast" role="status"></div>
-      </form>
-    </section>
-
+  <main class="grid lib-only">
     <section aria-labelledby="libH">
       <h2 id="libH">Your quotes <small id="count"></small></h2>
       <div class="searchbar">
@@ -241,6 +229,36 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
       </div>
     </section>
   </main>
+  </div>
+
+  <div id="addView" hidden>
+    <div class="add-page">
+    <section class="add" aria-labelledby="addH">
+      <h2 id="addH">Add a quote</h2>
+      <form id="form" autocomplete="off">
+        <label class="f" for="qText">Quote</label>
+        <textarea id="qText" required placeholder="Type or paste the words you want to keep"></textarea>
+        <div class="row2">
+          <div><label class="f" for="qAuthor">Who said it</label><input type="text" id="qAuthor" list="authorList"></div>
+          <div><label class="f" for="qSource">Where from</label><input type="text" id="qSource" placeholder="Book, talk, friend…"></div>
+        </div>
+        <label class="f" for="qTags">Tags</label>
+        <input type="text" id="qTags" placeholder="courage, work, family">
+        <datalist id="authorList"></datalist>
+        <div class="form-actions">
+          <button class="btn primary" type="submit" id="saveBtn">Save quote</button>
+          <button class="btn" type="button" id="cancelEdit" hidden>Cancel edit</button>
+          <span class="hint">Ctrl/⌘ + Enter saves</span>
+        </div>
+        <div id="toast" role="status"></div>
+      </form>
+    </section>
+    <section class="recent" id="recentWrap" hidden>
+      <h3>Recently added</h3>
+      <ul id="recentList" class="rlist"></ul>
+    </section>
+
+    </div>
   </div>
 
   <div id="similarView" hidden>
@@ -463,13 +481,15 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     $('qText').value = q.text; $('qAuthor').value = q.author || ''; $('qSource').value = q.source || '';
     $('qTags').value = (q.tags || []).join(', ');
     $('addH').textContent = 'Edit quote'; $('saveBtn').textContent = 'Save changes'; $('cancelEdit').hidden = false;
-    $('qText').focus();
+    location.hash = '#add';
+    setTimeout(() => $('qText').focus(), 0);
   }
   function resetForm() {
     editingId = null; $('form').reset();
     $('addH').textContent = 'Add a quote'; $('saveBtn').textContent = 'Save quote'; $('cancelEdit').hidden = true;
   }
-  $('cancelEdit').onclick = resetForm;
+  $('cancelEdit').onclick = () => { resetForm(); goHome(); };
+  function goHome() { window.history.pushState(null, '', location.pathname + location.search); route(); }
   $('form').addEventListener('submit', e => {
     e.preventDefault();
     const text = $('qText').value.trim();
@@ -485,12 +505,13 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     const wasEdit = !!editingId;
     persist(id, data);
     resetForm();
-    flash(wasEdit ? 'Changes saved.' : 'Quote saved.');
+    if (wasEdit) { goHome(); return; }
+    flash('Quote saved. Add another, or go to My quotes to see it in rotation.');
     $('qText').focus();
   });
   $('qText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('form').requestSubmit(); });
   document.addEventListener('keydown', e => {
-    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('search').focus(); }
+    if (e.key === '/' && !$('homeView').hidden && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $('search').focus(); }
   });
   $('search').addEventListener('input', renderList);
   $('sort').addEventListener('change', renderList);
@@ -590,7 +611,7 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
   }
 
   function renderAll() {
-    renderList(); renderAuthors(); renderPick();
+    renderList(); renderAuthors(); renderPick(); renderRecent();
     const inPool = pool().some(q => q.id === current);
     if (!inPool) nextQuote(); else renderStage();
   }
@@ -627,6 +648,18 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
       flash(added ? `Restored ${added} quote${added === 1 ? '' : 's'}.` : 'Every quote in that backup is already here.');
     } catch { flash('That file isn’t a quotes backup.', true); }
   };
+
+  function renderRecent() {
+    const recent = [...quotes].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 3);
+    $('recentWrap').hidden = !recent.length;
+    const ul = $('recentList'); ul.textContent = '';
+    recent.forEach(q => {
+      const li = quoteItem(q, '');
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const b = document.createElement('button'); b.className = 'act'; b.textContent = 'Edit'; b.onclick = () => startEdit(q);
+      acts.appendChild(b); li.appendChild(acts); ul.appendChild(li);
+    });
+  }
 
   // ---------- Google Tasks import ----------
   let gtData = null; // [{title, tasks:[{title, notes, done, created}]}]
@@ -946,13 +979,18 @@ Respond with only JSON, no other text:
 
   // ---------- pages ----------
   function route() {
-    const sim = location.hash === '#similar';
-    $('homeView').hidden = sim; $('similarView').hidden = !sim;
-    $('navHome').removeAttribute('aria-current'); $('navSim').removeAttribute('aria-current');
-    (sim ? $('navSim') : $('navHome')).setAttribute('aria-current', 'page');
+    const page = location.hash === '#similar' ? 'sim' : location.hash === '#add' ? 'add' : 'home';
+    $('homeView').hidden = page !== 'home';
+    $('addView').hidden = page !== 'add';
+    $('similarView').hidden = page !== 'sim';
+    ['navHome', 'navAdd', 'navSim'].forEach(id => $(id).removeAttribute('aria-current'));
+    $({ home: 'navHome', add: 'navAdd', sim: 'navSim' }[page]).setAttribute('aria-current', 'page');
+    if (page === 'add' && !editingId) setTimeout(() => $('qText').focus(), 0);
+    if (page !== 'add' && editingId) resetForm();
+    window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', route);
-  $('navHome').onclick = e => { e.preventDefault(); window.history.replaceState(null, '', location.pathname + location.search); route(); };
+  $('navHome').onclick = e => { e.preventDefault(); goHome(); };
 
   // ---------- start ----------
   loadPrefs();
