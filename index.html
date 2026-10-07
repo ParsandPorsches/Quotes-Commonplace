@@ -142,6 +142,11 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
 .add-page textarea{min-height:180px;font-size:1.2rem}
 .recent{margin-top:28px}
 .recent h3{font-family:var(--serif);font-weight:500;font-size:1.15rem;margin:0 0 4px}
+.web-links{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.web-links a{display:inline-block;border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:7px 14px;color:var(--ink);text-decoration:none;font-size:.92rem}
+.web-links a:hover{border-color:var(--plum);color:var(--plum)}
+.web-h{font-family:var(--serif);font-weight:500;font-size:1.05rem;margin:18px 0 0}
+#webQuery{margin-top:2px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){#show{transition:none}}
 </style>
@@ -264,30 +269,14 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
   <div id="similarView" hidden>
     <section class="sim">
       <h2 class="sim-title">Find similar quotes</h2>
-      <p class="lede">Paste a quote, describe an idea, or start from one you’ve saved. The AI looks for quotes that share the meaning, not just the same words.</p>
+      <p class="lede">Paste a quote, describe an idea, or start from one you’ve saved. You’ll see the closest matches in your own collection, plus ready-made searches to open on quote sites.</p>
       <label for="simInput" class="sr">What to search for</label>
       <textarea id="simInput" placeholder="For example: quotes about starting before you feel ready"></textarea>
       <div class="sim-row">
         <label for="simPick" class="sr">Start from a saved quote</label>
         <select id="simPick"><option value="">Or start from one of your quotes…</option></select>
-        <label class="ctl-label"><input type="checkbox" id="simNew" checked> Also suggest new quotes</label>
         <button class="btn primary" id="simGo">Find similar</button>
       </div>
-
-      <div id="aiSetup" class="ai-setup" hidden>
-        <h3>Connect an AI model</h3>
-        <p>On this site the page needs your own Anthropic API key to use AI. You can create one at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>; usage is billed to your Anthropic account. The key is saved only in this browser and is sent only to Anthropic.</p>
-        <div class="row2">
-          <div><label class="f" for="apiKey">API key</label><input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off"></div>
-          <div><label class="f" for="apiModel">Model</label><input type="text" id="apiModel" value="claude-sonnet-5-5"></div>
-        </div>
-        <div class="form-actions">
-          <button class="btn primary" id="saveKey">Save key</button>
-          <button class="btn" id="forgetKey">Forget key</button>
-        </div>
-        <p class="hint">Without a key, “From your collection” still works using word matching.</p>
-      </div>
-
       <div id="simStatus" role="status"></div>
 
       <div class="sim-results" id="simResults" hidden>
@@ -295,10 +284,17 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
           <h3>From your collection</h3>
           <ul id="simMine" class="rlist"></ul>
         </section>
-        <section id="simNewWrap">
-          <h3>New quotes to consider</h3>
-          <p class="hint">AI can misquote or credit the wrong person. Double-check a quote before you share it.</p>
-          <ul id="simNewList" class="rlist"></ul>
+        <section>
+          <h3>Search the web</h3>
+          <label class="f" for="webQuery">Search words</label>
+          <input type="text" id="webQuery">
+          <p class="hint">Picked from your quote. Change them to steer the search.</p>
+          <div id="webLinks" class="web-links"></div>
+          <div id="authorWrap" hidden>
+            <h4 class="web-h">More from <span id="authorName"></span></h4>
+            <div id="authorLinks" class="web-links"></div>
+          </div>
+          <p class="hint">Each link opens in a new tab. When you find a quote you like, copy it into Add a quote.</p>
         </section>
       </div>
     </section>
@@ -363,8 +359,6 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     if (window.claude && typeof window.claude.use === 'function') {
       try { [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); } catch {}
       try { downloads = await window.claude.use('downloads'); } catch {}
-      try { sampleFn = await window.claude.use('sample'); } catch {}
-      aiChecked = true; updateAiSetup();
     }
     const uid = user ? await user.id().catch(() => null) : null;
     if (!db || !uid) { useLocal(); return; }
@@ -791,30 +785,10 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     gtMsg(`Imported ${n} quote${n === 1 ? '' : 's'}. You can edit any of them in the list above.`);
   };
 
-  // ---------- find similar ----------
-  let sampleFn = null, aiChecked = false, simBusy = false;
-  const KEY_KEY = 'commonplace.apikey.v1', MODEL_KEY = 'commonplace.model.v1';
-  const getKey = () => { try { return localStorage.getItem(KEY_KEY) || ''; } catch { return ''; } };
-  const getModel = () => { try { return localStorage.getItem(MODEL_KEY) || 'claude-sonnet-5-5'; } catch { return 'claude-sonnet-5-5'; } };
-  const hostedInClaude = () => !!window.claude;
-  const aiMode = () => sampleFn ? 'claude' : (!hostedInClaude() && getKey() ? 'key' : 'none');
-
-  function updateAiSetup() {
-    // The key form only makes sense outside claude.ai (e.g. GitHub Pages)
-    $('aiSetup').hidden = hostedInClaude() || !!getKey();
-    $('apiModel').value = getModel();
-  }
-  $('saveKey').onclick = () => {
-    const k = $('apiKey').value.trim();
-    if (!k) { simMsg('Paste your API key first.', true); return; }
-    try { localStorage.setItem(KEY_KEY, k); localStorage.setItem(MODEL_KEY, $('apiModel').value.trim() || 'claude-sonnet-5-5'); } catch {}
-    $('apiKey').value = ''; updateAiSetup(); simMsg('Key saved in this browser. You can search now.');
-  };
-  $('forgetKey').onclick = () => { try { localStorage.removeItem(KEY_KEY); } catch {} updateAiSetup(); simMsg('Key removed from this browser.'); };
-
+  // ---------- find similar (no AI) ----------
   function simMsg(t, err) { const s = $('simStatus'); s.textContent = t; s.className = err ? 'err' : ''; }
 
-  const STOP = new Set('the a an and or of to in is it its that for on with as be at by this are was were you your i my me we our us not but from have has had they their them he she his her so if what all can will do does just than then there when who why how about into out up one more most no yes only own same too very'.split(' '));
+  const STOP = new Set('the a an and or of to in is it its that for on with as be at by this are was were you your i my me we our us not but from have has had they their them he she his her so if what all can will do does just than then there when who why how about into out up one more most no yes only own same too very shall would could should may might must been being these those which while whom unto thee thou thy ye also even ever every much many such some any other each over under again once here where because whatever whom therefore itself themselves yourself himself herself myself ourselves something nothing anything everything thing things like know make made said says come came going want wants get got let lets back still well really enough always never cannot dont doesnt isnt wont youre theyre thats'.split(' '));
   const words = s => ((s || '').toLowerCase().match(/[a-z']+/g) || [])
     .filter(w => w.length > 2 && !STOP.has(w)).map(w => w.replace(/(ing|ed|es|s)$/, ''));
   function localRank(query, excludeId) {
@@ -826,49 +800,49 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
   }
 
-  async function aiJSON(prompt) {
-    if (sampleFn) return await sampleFn.json(prompt, { modelTier: 'default' });
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': getKey(),
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model: getModel(), max_tokens: 2500, messages: [{ role: 'user', content: prompt }] })
+  // Pick the most telling words from a quote to search with
+  function keywords(text, n) {
+    const raw = (text || '').toLowerCase().replace(/[’']/g, "'").match(/[a-z][a-z']*/g) || [];
+    const counts = new Map(), first = new Map();
+    raw.forEach((w, i) => {
+      w = w.replace(/'s$/, '');
+      if (w.length < 4 || STOP.has(w)) return;
+      counts.set(w, (counts.get(w) || 0) + 1);
+      if (!first.has(w)) first.set(w, i);
     });
-    if (!res.ok) {
-      let msg = ''; try { msg = (await res.json()).error.message; } catch {}
-      throw { code: 'http', status: res.status, message: msg };
-    }
-    const d = await res.json();
-    const text = (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
-    return JSON.parse(text.replace(/```json|```/g, '').trim());
+    return [...counts.keys()]
+      .sort((a, b) => counts.get(b) - counts.get(a) || b.length - a.length)
+      .slice(0, n)
+      .sort((a, b) => first.get(a) - first.get(b))
+      .join(' ');
   }
 
-  function buildPrompt(query, excludeId, wantNew) {
-    // Send the most relevant ~250 quotes so large collections stay within limits
-    const ranked = localRank(query, excludeId).map(r => r.q);
-    const rest = sorted(quotes).filter(q => q.id !== excludeId && !ranked.includes(q));
-    const pool = [...ranked.slice(0, 120), ...rest].slice(0, 250);
-    const lines = pool.map(q => [q.id, q.text.replace(/\s+/g, ' ').slice(0, 300), q.author || '', (q.tags || []).join(',')].join(' | ')).join('\n');
-    return `You help someone explore their personal collection of saved quotes.
-
-What they want quotes similar to:
-"""${query.slice(0, 1500)}"""
-
-Their saved quotes, one per line as: id | quote | author | tags
-${lines || '(none saved yet)'}
-
-Task 1: Choose up to 6 saved quotes that are closest in meaning, spirit or theme to what they want (not merely sharing words). Best match first. Leave out weak matches; an empty list is fine. Use only ids from the list above.
-${wantNew ? `Task 2: Suggest 6 real, published quotes that are NOT in their collection and fit the same theme. Prefer a mix of eras and voices. Each under 60 words. Only give a quote if you are confident of its wording and who said it; if you are not fully sure of the wording or attribution, set "confidence" to "unsure".` : 'Task 2: Skip. Return an empty "suggestions" list.'}
-
-For every item, "why" is one short sentence (under 15 words) on how it connects.
-
-Respond with only JSON, no other text:
-{"mine":[{"id":"...","why":"..."}],"suggestions":[{"text":"...","author":"...","source":"...","why":"...","confidence":"high"}]}`;
+  const enc = encodeURIComponent;
+  const SITES = [
+    ['Google', q => 'https://www.google.com/search?q=' + enc(q + ' quotes')],
+    ['Goodreads', q => 'https://www.goodreads.com/quotes/search?q=' + enc(q)],
+    ['Wikiquote', q => 'https://en.wikiquote.org/w/index.php?search=' + enc(q) + '&fulltext=1'],
+    ['BrainyQuote', q => 'https://www.brainyquote.com/search_results?q=' + enc(q)],
+    ['Bible verses', q => 'https://www.biblegateway.com/quicksearch/?quicksearch=' + enc(q)]
+  ];
+  const AUTHOR_SITES = [
+    ['Goodreads', a => 'https://www.goodreads.com/quotes/search?q=' + enc(a)],
+    ['Wikiquote', a => 'https://en.wikiquote.org/w/index.php?search=' + enc(a)],
+    ['Google', a => 'https://www.google.com/search?q=' + enc('"' + a + '" quotes')]
+  ];
+  function linkRow(el, list, value) {
+    el.textContent = '';
+    list.forEach(([label, url]) => {
+      const a = document.createElement('a');
+      a.href = url(value); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = label;
+      el.appendChild(a);
+    });
   }
+  function renderWeb() {
+    const q = $('webQuery').value.trim();
+    if (q) linkRow($('webLinks'), SITES, q); else $('webLinks').textContent = '';
+  }
+  $('webQuery').addEventListener('input', renderWeb);
 
   function quoteItem(q, why, extra) {
     const li = document.createElement('li');
@@ -888,9 +862,9 @@ Respond with only JSON, no other text:
 
   function renderMine(items) {
     const ul = $('simMine'); ul.textContent = '';
-    if (!items.length) { ul.innerHTML = '<li class="lib-empty">No close matches in your collection yet.</li>'; return; }
-    items.forEach(({ q, why }) => {
-      const li = quoteItem(q, why);
+    if (!items.length) { ul.innerHTML = '<li class="lib-empty">No quotes in your collection share words with this one.</li>'; return; }
+    items.forEach(({ q }) => {
+      const li = quoteItem(q, '');
       const acts = document.createElement('div'); acts.className = 'acts';
       const b = document.createElement('button'); b.className = 'act'; b.textContent = 'Find similar to this';
       b.onclick = () => { $('simInput').value = q.text; $('simPick').value = q.id; runSimilar(); window.scrollTo({ top: 0 }); };
@@ -898,68 +872,21 @@ Respond with only JSON, no other text:
     });
   }
 
-  function renderSuggestions(list) {
-    const ul = $('simNewList'); ul.textContent = '';
-    if (!list.length) { ul.innerHTML = '<li class="lib-empty">No suggestions this time. Try describing the idea in your own words.</li>'; return; }
-    const have = new Set(quotes.map(q => norm(q.text)));
-    list.forEach(s => {
-      if (!s || !s.text) return;
-      let flag = null;
-      if (s.confidence === 'unsure') { flag = document.createElement('span'); flag.className = 'unsure'; flag.textContent = '(attribution unsure)'; }
-      const li = quoteItem({ text: String(s.text), author: s.author ? String(s.author) : '', source: s.source ? String(s.source) : '' }, s.why ? String(s.why) : '', flag);
-      const acts = document.createElement('div'); acts.className = 'acts';
-      const b = document.createElement('button'); b.className = 'act';
-      const already = have.has(norm(s.text));
-      b.textContent = already ? 'Already saved' : 'Save to my quotes'; b.disabled = already;
-      b.onclick = () => {
-        persist(newId(), clean({ text: s.text, author: s.author, source: s.source, tags: [] }));
-        b.textContent = 'Saved'; b.disabled = true; b.classList.add('on');
-      };
-      acts.appendChild(b); li.appendChild(acts); ul.appendChild(li);
-    });
-  }
-
-  async function runSimilar() {
+  function runSimilar() {
     const query = $('simInput').value.trim();
     if (!query) { simMsg('Type an idea or pick one of your quotes first.', true); $('simInput').focus(); return; }
-    if (simBusy) return;
-    const excludeId = $('simPick').value || null;
-    const wantNew = $('simNew').checked;
-    const mode = aiMode();
-
-    if (mode === 'none') {
-      const ranked = localRank(query, excludeId).slice(0, 8).map(r => ({ q: r.q, why: '' }));
-      renderMine(ranked);
-      $('simNewWrap').hidden = true; $('simResults').hidden = false;
-      simMsg(hostedInClaude()
-        ? 'AI search isn’t available in this view, so these are matched by shared words.'
-        : 'Matched by shared words. Add an API key above for meaning-based matches and new suggestions.');
-      return;
-    }
-
-    simBusy = true; $('simGo').disabled = true;
-    simMsg('Reading your quotes and looking for connections…');
-    try {
-      const out = await aiJSON(buildPrompt(query, excludeId, wantNew));
-      const byId = new Map(quotes.map(q => [q.id, q]));
-      const mine = (Array.isArray(out && out.mine) ? out.mine : [])
-        .filter(m => m && byId.has(m.id) && m.id !== excludeId)
-        .map(m => ({ q: byId.get(m.id), why: m.why ? String(m.why) : '' }));
-      renderMine(mine);
-      $('simNewWrap').hidden = !wantNew;
-      if (wantNew) renderSuggestions(Array.isArray(out && out.suggestions) ? out.suggestions : []);
-      $('simResults').hidden = false;
-      simMsg('');
-    } catch (e) {
-      const c = e && e.code;
-      if (c === 'not_granted') simMsg('AI access was declined. Allow it from this page’s permissions to use AI search.', true);
-      else if (c === 'rate_limited') simMsg('Too many searches in a short time. Wait a minute and try again.', true);
-      else if (c === 'http' && e.status === 401) { simMsg('That API key was rejected. Check it and save it again.', true); try { localStorage.removeItem(KEY_KEY); } catch {} updateAiSetup(); }
-      else if (c === 'http' && e.status === 404) simMsg('That model name wasn’t found. Forget the key and save it again with a different model.', true);
-      else if (c === 'http') simMsg('The AI request failed' + (e.message ? ': ' + e.message : '.'), true);
-      else if (e instanceof SyntaxError || c === 'invalid_json') simMsg('The AI answer came back garbled. Try the search again.', true);
-      else simMsg('Couldn’t reach the AI. Check your connection and try again.', true);
-    } finally { simBusy = false; $('simGo').disabled = false; }
+    simMsg('');
+    const pickId = $('simPick').value || null;
+    const picked = pickId && quotes.find(q => q.id === pickId && q.text === query);
+    const excludeId = picked ? pickId : null;
+    renderMine(localRank(query, excludeId).slice(0, 8));
+    // Short inputs are searched as typed; longer quotes are boiled down to key words
+    $('webQuery').value = query.split(/\s+/).length <= 6 ? query : keywords(query, 5);
+    renderWeb();
+    const author = picked && picked.author;
+    $('authorWrap').hidden = !author;
+    if (author) { $('authorName').textContent = author; linkRow($('authorLinks'), AUTHOR_SITES, author); }
+    $('simResults').hidden = false;
   }
   $('simGo').onclick = runSimilar;
   $('simInput').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runSimilar(); });
@@ -995,8 +922,6 @@ Respond with only JSON, no other text:
   // ---------- start ----------
   loadPrefs();
   route();
-  if (!hostedInClaude()) { aiChecked = true; }
-  updateAiSetup();
   renderAll();
   requestAnimationFrame(t => { last = t; tick(t); });
   connect();
