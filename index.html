@@ -43,12 +43,15 @@ button,input,textarea,select{font:inherit;color:inherit}
 
 /* The stage: the one bold element */
 .stage{padding:56px 0 40px;min-height:52vh;display:flex;flex-direction:column;justify-content:center}
-#show{margin:0;max-width:30ch;transition:opacity .45s ease}
+#show{margin:0;width:100%;transition:opacity .45s ease}
 #show.fade{opacity:0}
-#showText{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(1.9rem,4.6vw,3.4rem);line-height:1.18;letter-spacing:-.01em;text-wrap:balance;position:relative}
-#showText.long{font-size:clamp(1.4rem,3vw,2.2rem);line-height:1.3}
-#showText.xlong{font-size:clamp(1.15rem,2.2vw,1.6rem);line-height:1.4}
-#showText::before{content:"\201C";position:absolute;left:-.55em;top:-.05em;color:var(--plum);opacity:.85}
+#showText{margin:0 0 0 .6em;font-family:var(--serif);font-weight:400;font-size:clamp(1.9rem,4.6vw,3.4rem);line-height:1.18;letter-spacing:-.01em;text-wrap:balance;position:relative;max-width:26ch;overflow-wrap:anywhere;white-space:pre-line}
+#showText.long{font-size:clamp(1.45rem,3vw,2.2rem);line-height:1.3;max-width:36ch;text-wrap:pretty}
+#showText.xlong{font-size:clamp(1.15rem,2.1vw,1.55rem);line-height:1.45;max-width:52ch;text-wrap:pretty}
+#showText.xxlong{font-size:clamp(1rem,1.6vw,1.2rem);line-height:1.55;max-width:66ch;text-wrap:pretty;max-height:58vh;overflow-y:auto;padding-right:8px}
+#showText::before{content:"\201C";position:absolute;left:-.6em;top:-.05em;color:var(--plum);opacity:.85}
+#showText.xlong::before,#showText.xxlong::before{font-size:2em;line-height:1;left:-.55em;top:-.1em}
+@media (max-width:520px){#showText{margin-left:.5em}}
 #showBy{margin-top:22px;font-size:1.02rem;color:var(--muted)}
 #showBy strong{color:var(--ink);font-weight:600}
 .empty-stage{font-family:var(--serif);font-style:italic;font-size:clamp(1.5rem,3.5vw,2.4rem);color:var(--muted);max-width:24ch;margin:0}
@@ -101,6 +104,36 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
 .lib-empty{color:var(--muted);padding:20px 0;font-size:.95rem}
 .backup{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;align-items:center}
 .backup label{cursor:pointer}
+.nav{display:flex;gap:18px;margin-right:auto;margin-left:24px}
+.nav a{color:var(--muted);text-decoration:none;font-size:.95rem;padding:2px 0;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--ink)}
+.nav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--plum)}
+@media (max-width:520px){.nav{margin-left:0;order:3;width:100%}}
+.sim{padding:44px 0 64px;max-width:860px}
+.sim-title{font-size:clamp(1.8rem,4vw,2.6rem);margin-bottom:8px}
+.lede{color:var(--muted);max-width:60ch;margin:0 0 20px}
+#simInput{min-height:90px}
+.sim-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.sim-row select{flex:1 1 240px;max-width:100%}
+.ai-setup{margin-top:24px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:18px 20px}
+.ai-setup h3{margin:0 0 6px;font-family:var(--serif);font-weight:500;font-size:1.15rem}
+.ai-setup p{margin:0 0 8px;font-size:.92rem;color:var(--muted)}
+.ai-setup a{color:var(--plum)}
+#simStatus{margin-top:18px;color:var(--muted);min-height:1.4em}
+#simStatus.err{color:#B3261E}
+.sim-results{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:12px}
+@media (max-width:760px){.sim-results{grid-template-columns:1fr}}
+.sim-results h3{font-family:var(--serif);font-weight:500;font-size:1.2rem;margin:0 0 6px}
+.rlist{list-style:none;margin:0;padding:0}
+.rlist li{padding:14px 0;border-bottom:1px solid var(--rule)}
+.why{font-size:.88rem;color:var(--moss);margin-top:6px}
+.unsure{font-size:.8rem;color:#9A6B12;margin-left:6px}
+.gt{margin-top:16px}
+.gt-sub{font-weight:600;color:var(--ink)!important;margin:16px 0 6px!important}
+.gt-lists{display:flex;flex-direction:column;gap:4px}
+.gt-opt{display:flex;margin:6px 0 0;flex-wrap:wrap}
+#gtPreview li{padding:10px 0}
+#gtPreview .q{font-size:1rem}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){#show{transition:none}}
 </style>
@@ -109,9 +142,14 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
 <div class="wrap">
   <header class="top">
     <h1>Commonplace</h1>
+    <nav class="nav" aria-label="Pages">
+      <a href="#" id="navHome">My quotes</a>
+      <a href="#similar" id="navSim">Find similar</a>
+    </nav>
     <span id="status">Loading your quotes…</span>
   </header>
 
+  <div id="homeView">
   <section class="stage" aria-label="Quote rotation">
     <div id="stageBody"></div>
     <div class="timer" aria-hidden="true"><div id="bar"></div></div>
@@ -171,9 +209,82 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
         <button class="btn" id="exportBtn">Download backup</button>
         <label class="btn" for="importFile">Restore from backup</label>
         <input type="file" id="importFile" accept="application/json,.json" class="sr">
+        <button class="btn" id="gtOpen" aria-expanded="false" aria-controls="gtPanel">Import from Google Tasks</button>
+      </div>
+
+      <div id="gtPanel" class="ai-setup gt" hidden>
+        <h3>Import from Google Tasks</h3>
+        <p>Export your tasks with Google Takeout, then choose the downloaded .zip here (or the Tasks.json file inside it). Nothing is imported until you confirm.</p>
+        <label class="btn" for="gtFile">Choose Takeout file</label>
+        <input type="file" id="gtFile" accept=".zip,.json,application/zip,application/json" class="sr">
+        <div id="gtStep2" hidden>
+          <p class="gt-sub">Which lists hold your quotes?</p>
+          <div id="gtLists" class="gt-lists"></div>
+          <p class="gt-sub">How should each task be read?</p>
+          <label class="ctl-label gt-opt">Quote text is in
+            <select id="gtWhere"><option value="title">the task title</option><option value="notes">the task notes</option></select>
+          </label>
+          <label class="ctl-label gt-opt"><input type="checkbox" id="gtSplit" checked> Pull out the author when the quote ends with “– Name”</label>
+          <label class="ctl-label gt-opt">Task notes go into
+            <select id="gtNotes"><option value="source">Where from</option><option value="author">Who said it</option><option value="tag">a tag</option><option value="skip">nowhere (ignore)</option></select>
+          </label>
+          <label class="ctl-label gt-opt"><input type="checkbox" id="gtTagList"> Tag each quote with its list name</label>
+          <label class="ctl-label gt-opt"><input type="checkbox" id="gtDone" checked> Include completed tasks</label>
+          <p class="gt-sub">Preview</p>
+          <ul id="gtPreview" class="rlist"></ul>
+          <div class="form-actions">
+            <button class="btn primary" id="gtGo">Import</button>
+            <button class="btn" id="gtCancel">Cancel</button>
+          </div>
+        </div>
+        <div id="gtStatus" role="status" class="hint"></div>
       </div>
     </section>
   </main>
+  </div>
+
+  <div id="similarView" hidden>
+    <section class="sim">
+      <h2 class="sim-title">Find similar quotes</h2>
+      <p class="lede">Paste a quote, describe an idea, or start from one you’ve saved. The AI looks for quotes that share the meaning, not just the same words.</p>
+      <label for="simInput" class="sr">What to search for</label>
+      <textarea id="simInput" placeholder="For example: quotes about starting before you feel ready"></textarea>
+      <div class="sim-row">
+        <label for="simPick" class="sr">Start from a saved quote</label>
+        <select id="simPick"><option value="">Or start from one of your quotes…</option></select>
+        <label class="ctl-label"><input type="checkbox" id="simNew" checked> Also suggest new quotes</label>
+        <button class="btn primary" id="simGo">Find similar</button>
+      </div>
+
+      <div id="aiSetup" class="ai-setup" hidden>
+        <h3>Connect an AI model</h3>
+        <p>On this site the page needs your own Anthropic API key to use AI. You can create one at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>; usage is billed to your Anthropic account. The key is saved only in this browser and is sent only to Anthropic.</p>
+        <div class="row2">
+          <div><label class="f" for="apiKey">API key</label><input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off"></div>
+          <div><label class="f" for="apiModel">Model</label><input type="text" id="apiModel" value="claude-sonnet-5-5"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" id="saveKey">Save key</button>
+          <button class="btn" id="forgetKey">Forget key</button>
+        </div>
+        <p class="hint">Without a key, “From your collection” still works using word matching.</p>
+      </div>
+
+      <div id="simStatus" role="status"></div>
+
+      <div class="sim-results" id="simResults" hidden>
+        <section>
+          <h3>From your collection</h3>
+          <ul id="simMine" class="rlist"></ul>
+        </section>
+        <section id="simNewWrap">
+          <h3>New quotes to consider</h3>
+          <p class="hint">AI can misquote or credit the wrong person. Double-check a quote before you share it.</p>
+          <ul id="simNewList" class="rlist"></ul>
+        </section>
+      </div>
+    </section>
+  </div>
 </div>
 
 <script>
@@ -234,6 +345,8 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     if (window.claude && typeof window.claude.use === 'function') {
       try { [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]); } catch {}
       try { downloads = await window.claude.use('downloads'); } catch {}
+      try { sampleFn = await window.claude.use('sample'); } catch {}
+      aiChecked = true; updateAiSetup();
     }
     const uid = user ? await user.id().catch(() => null) : null;
     if (!db || !uid) { useLocal(); return; }
@@ -327,6 +440,7 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
       mk('Show', () => { showQuote(q.id, true); window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); });
       const fav = mk(q.fav ? '★ Favorite' : '☆ Favorite', () => persist(q.id, { ...clean(q), fav: !q.fav, createdAt: q.createdAt }), q.fav ? 'on' : '');
       fav.setAttribute('aria-pressed', q.fav ? 'true' : 'false');
+      mk('Find similar', () => { $('simInput').value = q.text; $('simPick').value = q.id; location.hash = '#similar'; runSimilar(); });
       mk('Edit', () => startEdit(q));
       const del = mk('Delete', () => {
         if (del.classList.contains('armed')) { removeQuote(q.id); return; }
@@ -428,7 +542,8 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     }
     const fig = document.createElement('figure'); fig.id = 'show'; fig.classList.add('fade');
     const bq = document.createElement('blockquote'); bq.id = 'showText'; bq.textContent = q.text;
-    if (q.text.length > 380) bq.classList.add('xlong'); else if (q.text.length > 170) bq.classList.add('long');
+    const L = q.text.length;
+    bq.classList.add(L > 700 ? 'xxlong' : L > 300 ? 'xlong' : L > 110 ? 'long' : 'short');
     fig.appendChild(bq);
     if (q.author || q.source) {
       const cap = document.createElement('figcaption'); cap.id = 'showBy';
@@ -449,9 +564,13 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     const dt = now - last; last = now;
     if (!paused && !document.hidden && pool().length > 1) {
       elapsed += dt;
-      if (elapsed >= interval()) nextQuote();
+      const cur = quotes.find(x => x.id === current);
+      const need = Math.max(interval(), cur ? cur.text.length * 60 : 0);
+      if (elapsed >= need) nextQuote();
     }
-    $('bar').style.width = (pool().length > 1 ? Math.min(100, elapsed / interval() * 100) : 0) + '%';
+    const curQ = quotes.find(x => x.id === current);
+    const total = Math.max(interval(), curQ ? curQ.text.length * 60 : 0);
+    $('bar').style.width = (pool().length > 1 ? Math.min(100, elapsed / total * 100) : 0) + '%';
     requestAnimationFrame(tick);
   }
   $('nextBtn').onclick = () => nextQuote();
@@ -471,7 +590,7 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
   }
 
   function renderAll() {
-    renderList(); renderAuthors();
+    renderList(); renderAuthors(); renderPick();
     const inPool = pool().some(q => q.id === current);
     if (!inPool) nextQuote(); else renderStage();
   }
@@ -509,8 +628,337 @@ mark{background:var(--plum-soft);color:inherit;border-radius:2px;padding:0 1px}
     } catch { flash('That file isn’t a quotes backup.', true); }
   };
 
+  // ---------- Google Tasks import ----------
+  let gtData = null; // [{title, tasks:[{title, notes, done, created}]}]
+  const gtMsg = (t, err) => { const s = $('gtStatus'); s.textContent = t; s.style.color = err ? '#B3261E' : ''; };
+  $('gtOpen').onclick = () => {
+    const p = $('gtPanel'); p.hidden = !p.hidden;
+    $('gtOpen').setAttribute('aria-expanded', String(!p.hidden));
+    if (!p.hidden) p.scrollIntoView({ block: 'nearest' });
+  };
+  $('gtCancel').onclick = () => { gtData = null; $('gtStep2').hidden = true; $('gtPanel').hidden = true; $('gtOpen').setAttribute('aria-expanded', 'false'); gtMsg(''); };
+
+  function loadJSZip() {
+    if (window.JSZip) return Promise.resolve(window.JSZip);
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = () => res(window.JSZip); s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  function parseTakeout(json) {
+    // Takeout: {kind:"tasks#taskLists", items:[{title, items:[{title, notes, status, ...}]}]}
+    const lists = Array.isArray(json) ? json : (json && Array.isArray(json.items) ? json.items : null);
+    if (!lists) return null;
+    return lists.map(l => ({
+      title: String(l.title || 'Untitled list'),
+      tasks: (Array.isArray(l.items) ? l.items : [])
+        .filter(t => t && !t.deleted)
+        .map(t => ({
+          title: String(t.title || '').trim(),
+          notes: String(t.notes || '').trim(),
+          done: t.status === 'completed',
+          created: Date.parse(t.created || t.updated || '') || null
+        }))
+        .filter(t => t.title || t.notes)
+    })).filter(l => l.tasks.length);
+  }
+
+  $('gtFile').onchange = async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    gtMsg('Reading ' + file.name + '…');
+    try {
+      let text;
+      if (/\.zip$/i.test(file.name) || file.type.includes('zip')) {
+        const JSZip = await loadJSZip();
+        const zip = await JSZip.loadAsync(file);
+        const entry = Object.values(zip.files).find(f => !f.dir && /(^|\/)Tasks\/[^/]*\.json$/i.test(f.name))
+          || Object.values(zip.files).find(f => !f.dir && /tasks.*\.json$/i.test(f.name));
+        if (!entry) { gtMsg('That .zip doesn’t contain a Tasks file. In Takeout, make sure “Tasks” was selected.', true); return; }
+        text = await entry.async('string');
+      } else text = await file.text();
+      const lists = parseTakeout(JSON.parse(text));
+      if (!lists || !lists.length) { gtMsg('No tasks found in that file. Choose the Tasks.json from your Google Takeout export.', true); return; }
+      gtData = lists;
+      const box = $('gtLists'); box.textContent = '';
+      lists.forEach((l, i) => {
+        const lab = document.createElement('label'); lab.className = 'ctl-label';
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = i;
+        cb.checked = lists.length === 1 || /quot/i.test(l.title);
+        cb.onchange = gtPreview;
+        lab.appendChild(cb); lab.appendChild(document.createTextNode(` ${l.title} (${l.tasks.length})`));
+        box.appendChild(lab);
+      });
+      if (!box.querySelector('input:checked')) box.querySelectorAll('input').forEach(c => c.checked = true);
+      $('gtStep2').hidden = false; gtMsg('');
+      gtPreview();
+    } catch { gtMsg('Couldn’t read that file. Choose the .zip from Google Takeout or the Tasks.json inside it.', true); }
+  };
+
+  function splitAuthor(text) {
+    // "Some quote" – Author   /   Some quote - Author, Book
+    const m = text.match(/^(.{8,}?)\s+[-–—~]{1,2}\s*([^-–—~"“”]{2,80})$/s);
+    if (!m) return { text, author: '', source: '' };
+    let author = m[2].trim(), source = '';
+    if (author.split(/\s+/).length > 10) return { text, author: '', source: '' };
+    const c = author.indexOf(',');
+    if (c > 0) { source = author.slice(c + 1).trim(); author = author.slice(0, c).trim(); }
+    return { text: m[1].trim(), author, source };
+  }
+  const stripQuotes = s => s.replace(/^["“”'‘’]+|["“”'‘’]+$/g, '').trim();
+
+  function gtBuild() {
+    if (!gtData) return [];
+    const chosen = [...$('gtLists').querySelectorAll('input:checked')].map(c => gtData[+c.value]);
+    const where = $('gtWhere').value, notesTo = $('gtNotes').value;
+    const out = [];
+    chosen.forEach(l => l.tasks.forEach(t => {
+      if (t.done && !$('gtDone').checked) return;
+      let raw = where === 'notes' ? (t.notes || t.title) : (t.title || t.notes);
+      const extra = where === 'notes' ? (t.notes ? t.title : '') : (t.title ? t.notes : '');
+      let q = { text: raw, author: '', source: '', tags: [] };
+      if ($('gtSplit').checked) q = { ...q, ...splitAuthor(raw) };
+      q.text = stripQuotes(q.text);
+      if (extra) {
+        if (notesTo === 'source' && !q.source) q.source = extra;
+        else if (notesTo === 'source') q.source += '. ' + extra;
+        else if (notesTo === 'author' && !q.author) q.author = extra;
+        else if (notesTo === 'tag') q.tags.push(...extra.split(/[,\n]/));
+      }
+      if ($('gtTagList').checked) q.tags.push(l.title);
+      if (q.text) out.push({ ...q, createdAt: t.created || Date.now() });
+    }));
+    return out;
+  }
+
+  function gtPreview() {
+    const items = gtBuild();
+    const have = new Set(quotes.map(q => norm(q.text)));
+    const fresh = items.filter(q => !have.has(norm(q.text)));
+    const ul = $('gtPreview'); ul.textContent = '';
+    fresh.slice(0, 3).forEach(q => ul.appendChild(quoteItem(q, '')));
+    const dupes = items.length - fresh.length;
+    $('gtGo').textContent = fresh.length ? `Import ${fresh.length} quote${fresh.length === 1 ? '' : 's'}` : 'Nothing new to import';
+    $('gtGo').disabled = !fresh.length;
+    gtMsg(dupes ? `${dupes} already in your collection will be skipped.` : '');
+  }
+  ['gtWhere', 'gtSplit', 'gtNotes', 'gtTagList', 'gtDone'].forEach(id => $(id).addEventListener('change', gtPreview));
+
+  $('gtGo').onclick = async () => {
+    if (mode === 'pending') { gtMsg('Still loading your quotes. Try again in a moment.', true); return; }
+    const have = new Set(quotes.map(q => norm(q.text)));
+    const items = gtBuild().filter(q => { const k = norm(q.text); if (have.has(k)) return false; have.add(k); return true; });
+    $('gtGo').disabled = true;
+    let n = 0;
+    for (const q of items) { await persist(newId(), clean(q)); n++; if (n % 10 === 0) gtMsg(`Importing… ${n} of ${items.length}`); }
+    gtData = null; $('gtStep2').hidden = true;
+    gtMsg(`Imported ${n} quote${n === 1 ? '' : 's'}. You can edit any of them in the list above.`);
+  };
+
+  // ---------- find similar ----------
+  let sampleFn = null, aiChecked = false, simBusy = false;
+  const KEY_KEY = 'commonplace.apikey.v1', MODEL_KEY = 'commonplace.model.v1';
+  const getKey = () => { try { return localStorage.getItem(KEY_KEY) || ''; } catch { return ''; } };
+  const getModel = () => { try { return localStorage.getItem(MODEL_KEY) || 'claude-sonnet-5-5'; } catch { return 'claude-sonnet-5-5'; } };
+  const hostedInClaude = () => !!window.claude;
+  const aiMode = () => sampleFn ? 'claude' : (!hostedInClaude() && getKey() ? 'key' : 'none');
+
+  function updateAiSetup() {
+    // The key form only makes sense outside claude.ai (e.g. GitHub Pages)
+    $('aiSetup').hidden = hostedInClaude() || !!getKey();
+    $('apiModel').value = getModel();
+  }
+  $('saveKey').onclick = () => {
+    const k = $('apiKey').value.trim();
+    if (!k) { simMsg('Paste your API key first.', true); return; }
+    try { localStorage.setItem(KEY_KEY, k); localStorage.setItem(MODEL_KEY, $('apiModel').value.trim() || 'claude-sonnet-5-5'); } catch {}
+    $('apiKey').value = ''; updateAiSetup(); simMsg('Key saved in this browser. You can search now.');
+  };
+  $('forgetKey').onclick = () => { try { localStorage.removeItem(KEY_KEY); } catch {} updateAiSetup(); simMsg('Key removed from this browser.'); };
+
+  function simMsg(t, err) { const s = $('simStatus'); s.textContent = t; s.className = err ? 'err' : ''; }
+
+  const STOP = new Set('the a an and or of to in is it its that for on with as be at by this are was were you your i my me we our us not but from have has had they their them he she his her so if what all can will do does just than then there when who why how about into out up one more most no yes only own same too very'.split(' '));
+  const words = s => ((s || '').toLowerCase().match(/[a-z']+/g) || [])
+    .filter(w => w.length > 2 && !STOP.has(w)).map(w => w.replace(/(ing|ed|es|s)$/, ''));
+  function localRank(query, excludeId) {
+    const qw = new Set(words(query));
+    return quotes.filter(q => q.id !== excludeId).map(q => {
+      const w = new Set(words([q.text, q.author, q.source, (q.tags || []).join(' ')].join(' ')));
+      let s = 0; qw.forEach(x => { if (w.has(x)) s++; });
+      return { q, score: s / Math.sqrt(w.size + 1) };
+    }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
+  }
+
+  async function aiJSON(prompt) {
+    if (sampleFn) return await sampleFn.json(prompt, { modelTier: 'default' });
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': getKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: getModel(), max_tokens: 2500, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) {
+      let msg = ''; try { msg = (await res.json()).error.message; } catch {}
+      throw { code: 'http', status: res.status, message: msg };
+    }
+    const d = await res.json();
+    const text = (d.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  }
+
+  function buildPrompt(query, excludeId, wantNew) {
+    // Send the most relevant ~250 quotes so large collections stay within limits
+    const ranked = localRank(query, excludeId).map(r => r.q);
+    const rest = sorted(quotes).filter(q => q.id !== excludeId && !ranked.includes(q));
+    const pool = [...ranked.slice(0, 120), ...rest].slice(0, 250);
+    const lines = pool.map(q => [q.id, q.text.replace(/\s+/g, ' ').slice(0, 300), q.author || '', (q.tags || []).join(',')].join(' | ')).join('\n');
+    return `You help someone explore their personal collection of saved quotes.
+
+What they want quotes similar to:
+"""${query.slice(0, 1500)}"""
+
+Their saved quotes, one per line as: id | quote | author | tags
+${lines || '(none saved yet)'}
+
+Task 1: Choose up to 6 saved quotes that are closest in meaning, spirit or theme to what they want (not merely sharing words). Best match first. Leave out weak matches; an empty list is fine. Use only ids from the list above.
+${wantNew ? `Task 2: Suggest 6 real, published quotes that are NOT in their collection and fit the same theme. Prefer a mix of eras and voices. Each under 60 words. Only give a quote if you are confident of its wording and who said it; if you are not fully sure of the wording or attribution, set "confidence" to "unsure".` : 'Task 2: Skip. Return an empty "suggestions" list.'}
+
+For every item, "why" is one short sentence (under 15 words) on how it connects.
+
+Respond with only JSON, no other text:
+{"mine":[{"id":"...","why":"..."}],"suggestions":[{"text":"...","author":"...","source":"...","why":"...","confidence":"high"}]}`;
+  }
+
+  function quoteItem(q, why, extra) {
+    const li = document.createElement('li');
+    const p = document.createElement('p'); p.className = 'q'; p.textContent = q.text; li.appendChild(p);
+    if (q.author || q.source) {
+      const m = document.createElement('div'); m.className = 'meta';
+      if (q.author) { const s = document.createElement('strong'); s.textContent = q.author; m.appendChild(s); }
+      if (q.author && q.source) m.appendChild(document.createTextNode(', '));
+      if (q.source) m.appendChild(document.createTextNode(q.source));
+      if (extra) m.appendChild(extra);
+      li.appendChild(m);
+    }
+    if (why) { const w = document.createElement('div'); w.className = 'why'; w.textContent = why; li.appendChild(w); }
+    return li;
+  }
+  const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+  function renderMine(items) {
+    const ul = $('simMine'); ul.textContent = '';
+    if (!items.length) { ul.innerHTML = '<li class="lib-empty">No close matches in your collection yet.</li>'; return; }
+    items.forEach(({ q, why }) => {
+      const li = quoteItem(q, why);
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const b = document.createElement('button'); b.className = 'act'; b.textContent = 'Find similar to this';
+      b.onclick = () => { $('simInput').value = q.text; $('simPick').value = q.id; runSimilar(); window.scrollTo({ top: 0 }); };
+      acts.appendChild(b); li.appendChild(acts); ul.appendChild(li);
+    });
+  }
+
+  function renderSuggestions(list) {
+    const ul = $('simNewList'); ul.textContent = '';
+    if (!list.length) { ul.innerHTML = '<li class="lib-empty">No suggestions this time. Try describing the idea in your own words.</li>'; return; }
+    const have = new Set(quotes.map(q => norm(q.text)));
+    list.forEach(s => {
+      if (!s || !s.text) return;
+      let flag = null;
+      if (s.confidence === 'unsure') { flag = document.createElement('span'); flag.className = 'unsure'; flag.textContent = '(attribution unsure)'; }
+      const li = quoteItem({ text: String(s.text), author: s.author ? String(s.author) : '', source: s.source ? String(s.source) : '' }, s.why ? String(s.why) : '', flag);
+      const acts = document.createElement('div'); acts.className = 'acts';
+      const b = document.createElement('button'); b.className = 'act';
+      const already = have.has(norm(s.text));
+      b.textContent = already ? 'Already saved' : 'Save to my quotes'; b.disabled = already;
+      b.onclick = () => {
+        persist(newId(), clean({ text: s.text, author: s.author, source: s.source, tags: [] }));
+        b.textContent = 'Saved'; b.disabled = true; b.classList.add('on');
+      };
+      acts.appendChild(b); li.appendChild(acts); ul.appendChild(li);
+    });
+  }
+
+  async function runSimilar() {
+    const query = $('simInput').value.trim();
+    if (!query) { simMsg('Type an idea or pick one of your quotes first.', true); $('simInput').focus(); return; }
+    if (simBusy) return;
+    const excludeId = $('simPick').value || null;
+    const wantNew = $('simNew').checked;
+    const mode = aiMode();
+
+    if (mode === 'none') {
+      const ranked = localRank(query, excludeId).slice(0, 8).map(r => ({ q: r.q, why: '' }));
+      renderMine(ranked);
+      $('simNewWrap').hidden = true; $('simResults').hidden = false;
+      simMsg(hostedInClaude()
+        ? 'AI search isn’t available in this view, so these are matched by shared words.'
+        : 'Matched by shared words. Add an API key above for meaning-based matches and new suggestions.');
+      return;
+    }
+
+    simBusy = true; $('simGo').disabled = true;
+    simMsg('Reading your quotes and looking for connections…');
+    try {
+      const out = await aiJSON(buildPrompt(query, excludeId, wantNew));
+      const byId = new Map(quotes.map(q => [q.id, q]));
+      const mine = (Array.isArray(out && out.mine) ? out.mine : [])
+        .filter(m => m && byId.has(m.id) && m.id !== excludeId)
+        .map(m => ({ q: byId.get(m.id), why: m.why ? String(m.why) : '' }));
+      renderMine(mine);
+      $('simNewWrap').hidden = !wantNew;
+      if (wantNew) renderSuggestions(Array.isArray(out && out.suggestions) ? out.suggestions : []);
+      $('simResults').hidden = false;
+      simMsg('');
+    } catch (e) {
+      const c = e && e.code;
+      if (c === 'not_granted') simMsg('AI access was declined. Allow it from this page’s permissions to use AI search.', true);
+      else if (c === 'rate_limited') simMsg('Too many searches in a short time. Wait a minute and try again.', true);
+      else if (c === 'http' && e.status === 401) { simMsg('That API key was rejected. Check it and save it again.', true); try { localStorage.removeItem(KEY_KEY); } catch {} updateAiSetup(); }
+      else if (c === 'http' && e.status === 404) simMsg('That model name wasn’t found. Forget the key and save it again with a different model.', true);
+      else if (c === 'http') simMsg('The AI request failed' + (e.message ? ': ' + e.message : '.'), true);
+      else if (e instanceof SyntaxError || c === 'invalid_json') simMsg('The AI answer came back garbled. Try the search again.', true);
+      else simMsg('Couldn’t reach the AI. Check your connection and try again.', true);
+    } finally { simBusy = false; $('simGo').disabled = false; }
+  }
+  $('simGo').onclick = runSimilar;
+  $('simInput').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runSimilar(); });
+  $('simPick').onchange = () => { const q = quotes.find(x => x.id === $('simPick').value); if (q) $('simInput').value = q.text; };
+
+  function renderPick() {
+    const sel = $('simPick'), keep = sel.value;
+    sel.length = 1;
+    sorted(quotes).forEach(q => {
+      const o = document.createElement('option'); o.value = q.id;
+      const t = q.text.replace(/\s+/g, ' ');
+      o.textContent = (t.length > 70 ? t.slice(0, 67) + '…' : t) + (q.author ? ' — ' + q.author : '');
+      sel.appendChild(o);
+    });
+    sel.value = quotes.some(q => q.id === keep) ? keep : '';
+  }
+
+  // ---------- pages ----------
+  function route() {
+    const sim = location.hash === '#similar';
+    $('homeView').hidden = sim; $('similarView').hidden = !sim;
+    $('navHome').removeAttribute('aria-current'); $('navSim').removeAttribute('aria-current');
+    (sim ? $('navSim') : $('navHome')).setAttribute('aria-current', 'page');
+  }
+  window.addEventListener('hashchange', route);
+  $('navHome').onclick = e => { e.preventDefault(); window.history.replaceState(null, '', location.pathname + location.search); route(); };
+
   // ---------- start ----------
   loadPrefs();
+  route();
+  if (!hostedInClaude()) { aiChecked = true; }
+  updateAiSetup();
   renderAll();
   requestAnimationFrame(t => { last = t; tick(t); });
   connect();
